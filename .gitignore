@@ -1,0 +1,19 @@
+# Unreal
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+*.sln
+*.VC.db
+*.opensdf
+*.sdf
+*.suo
+
+# Core build output
+Core/build/
+*.obj
+*.exe
+*.pdb
+*.ilk
