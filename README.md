@@ -2,6 +2,10 @@
 
 The Unreal build of Gargantua. Original setting; see `Core/` for the rules.
 
+Picking this up fresh? Read [HANDOFF.md](HANDOFF.md) first — current state,
+what is proven versus merely built, the locked balance thresholds, and the
+toolchain gotchas already paid for.
+
 ## Core/ — the rules, with no engine in them
 
 `Core/` is plain C++17 with zero Unreal dependencies: the combat rules, the
