@@ -24,5 +24,8 @@ cl %FLAGS% tests\Tests.cpp /Fe:build\tests.exe /Fo:build\ || exit /b 1
 echo Building depth harness...
 cl %FLAGS% tools\DepthHarness.cpp /Fe:build\depth.exe /Fo:build\ || exit /b 1
 
+echo Building content report...
+cl %FLAGS% tools\ContentReport.cpp /Fe:build\content.exe /Fo:build\ || exit /b 1
+
 echo.
-echo Built build\tests.exe and build\depth.exe
+echo Built build\tests.exe, build\depth.exe and build\content.exe
