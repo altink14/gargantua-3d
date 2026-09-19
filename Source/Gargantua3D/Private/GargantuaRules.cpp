@@ -6,11 +6,20 @@
 
 DEFINE_LOG_CATEGORY(LogGargantua);
 
+/**
+ * An alias, deliberately not `using namespace`.
+ *
+ * Unreal compiles a module's .cpp files as one merged translation unit, so a
+ * file-scope `using namespace` leaks into every file after it in the blob.
+ * That made Gargantua::ElementCount visible unqualified and collided with a
+ * local of the same name inside the engine's own mesh headers, which fails the
+ * build in someone else's code for a reason that is entirely ours.
+ */
+namespace G = Gargantua;
+
 namespace
 {
-	using namespace Gargantua;
-
-	FGargSpecies ToBlueprint(const Species& S)
+	FGargSpecies ToBlueprint(const G::Species& S)
 	{
 		FGargSpecies Out;
 		Out.Key = FName(S.Key.data());
@@ -21,26 +30,26 @@ namespace
 		Out.Power = S.Power;
 		Out.Cooldown = S.Cooldown;
 		Out.Flavor = FText::FromString(FString(S.Flavor.data()));
-		Out.Color = FLinearColor::FromSRGBColor(FColor::FromHex(FString(ElementOf(S.Element).Color.data())));
+		Out.Color = FLinearColor::FromSRGBColor(FColor::FromHex(FString(G::ElementOf(S.Element).Color.data())));
 		return Out;
 	}
 
-	FGargFusion ToBlueprint(const Fusion& F)
+	FGargFusion ToBlueprint(const G::Fusion& F)
 	{
 		FGargFusion Out;
 		Out.Name = FText::FromString(FString(F.Name.data()));
-		Out.FirstKey = FName(SpeciesOf(F.A).Key.data());
-		Out.SecondKey = FName(SpeciesOf(F.B).Key.data());
+		Out.FirstKey = FName(G::SpeciesOf(F.A).Key.data());
+		Out.SecondKey = FName(G::SpeciesOf(F.B).Key.data());
 		Out.Power = F.Power;
 		Out.Element = static_cast<EGargElement>(F.Element);
 		Out.Description = FText::FromString(FString(F.Description.data()));
 		return Out;
 	}
 
-	SpeciesId FromKey(FName Key)
+	G::SpeciesId FromKey(FName Key)
 	{
 		const FString AsString = Key.ToString();
-		return SpeciesFromKey(std::string_view(TCHAR_TO_UTF8(*AsString)));
+		return G::SpeciesFromKey(std::string_view(TCHAR_TO_UTF8(*AsString)));
 	}
 }
 
@@ -111,49 +120,47 @@ void UGargantuaRules::GetWheelNeighbours(EGargElement Element, TArray<EGargEleme
 
 FString UGargantuaRules::RunRulesSelfCheck()
 {
-	using namespace Gargantua;
-
 	// The wheel, over all one hundred pairs. Antisymmetry is the property that
 	// makes it fair; without it one element is quietly stronger than the rest.
 	int32 Problems = 0;
-	for (int32 A = 0; A < ElementCount; ++A)
+	for (int32 A = 0; A < G::ElementCount; ++A)
 	{
 		int32 Strong = 0;
 		int32 Weak = 0;
-		for (int32 B = 0; B < ElementCount; ++B)
+		for (int32 B = 0; B < G::ElementCount; ++B)
 		{
-			const float Forward = Matchup(static_cast<ElementId>(A), static_cast<ElementId>(B));
-			const float Reverse = Matchup(static_cast<ElementId>(B), static_cast<ElementId>(A));
+			const float Forward = G::Matchup(static_cast<G::ElementId>(A), static_cast<G::ElementId>(B));
+			const float Reverse = G::Matchup(static_cast<G::ElementId>(B), static_cast<G::ElementId>(A));
 			if (A == B)
 			{
-				if (Forward != NeutralMultiplier) { ++Problems; }
+				if (Forward != G::NeutralMultiplier) { ++Problems; }
 				continue;
 			}
-			if (Forward == StrongMultiplier) { ++Strong; if (Reverse != WeakMultiplier) { ++Problems; } }
-			else if (Forward == WeakMultiplier) { ++Weak; }
-			else if (Reverse != NeutralMultiplier) { ++Problems; }
+			if (Forward == G::StrongMultiplier) { ++Strong; if (Reverse != G::WeakMultiplier) { ++Problems; } }
+			else if (Forward == G::WeakMultiplier) { ++Weak; }
+			else if (Reverse != G::NeutralMultiplier) { ++Problems; }
 		}
 		if (Strong != 2 || Weak != 2) { ++Problems; }
 	}
 
 	// A real duel, played by the two search policies, so this proves the engine
 	// runs rather than merely that the headers compiled.
-	const SpeciesId Mine[] = {SpeciesId::Cinderling, SpeciesId::Skirlwing, SpeciesId::Voltmote};
-	const SpeciesId Theirs[] = {SpeciesId::Gritmaw, SpeciesId::Nullmoth, SpeciesId::Mirebubble};
-	BattleState State = MakeBattle(MakeSide(Mine, 3), MakeSide(Theirs, 3));
+	const G::SpeciesId Mine[] = {G::SpeciesId::Cinderling, G::SpeciesId::Skirlwing, G::SpeciesId::Voltmote};
+	const G::SpeciesId Theirs[] = {G::SpeciesId::Gritmaw, G::SpeciesId::Nullmoth, G::SpeciesId::Mirebubble};
+	G::BattleState State = G::MakeBattle(G::MakeSide(Mine, 3), G::MakeSide(Theirs, 3));
 
-	BattleLog Log;
+	G::BattleLog Log;
 	int32 Plies = 0;
 	int32 Fusions = 0;
 	while (!State.IsOver() && Plies < 400)
 	{
-		const Action Chosen = State.Active == 0 ? TacticalPolicy(State, 0, 4) : GreedyPolicy(State, 1);
-		State = ApplyAction(State, Chosen, &Log);
+		const G::Action Chosen = State.Active == 0 ? G::TacticalPolicy(State, 0, 4) : G::GreedyPolicy(State, 1);
+		State = G::ApplyAction(State, Chosen, &Log);
 		++Plies;
 	}
-	for (const BattleEvent& E : Log)
+	for (const G::BattleEvent& E : Log)
 	{
-		if (E.Type == EventType::Fire && E.Fused)
+		if (E.Type == G::EventType::Fire && E.Fused)
 		{
 			++Fusions;
 		}
@@ -166,7 +173,7 @@ FString UGargantuaRules::RunRulesSelfCheck()
 	const FString Report = FString::Printf(
 		TEXT("Gargantua rules: %d species, %d fusions. Wheel problems: %d. ")
 		TEXT("Duel finished on turn %d (%s), %d fusions fired."),
-		SpeciesCount, static_cast<int32>(AllFusions.size()), Problems, State.Turn, *Outcome, Fusions);
+		G::SpeciesCount, static_cast<int32>(G::AllFusions.size()), Problems, State.Turn, *Outcome, Fusions);
 
 	if (Problems == 0)
 	{
