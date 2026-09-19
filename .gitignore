@@ -17,3 +17,6 @@ Core/build/
 *.exe
 *.pdb
 *.ilk
+
+# UnrealBuildTool artifacts
+*.uba
